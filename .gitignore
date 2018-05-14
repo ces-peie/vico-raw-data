@@ -1,0 +1,8 @@
+# Ignore RStudio project files
+.Rhistory
+.Rproj.user
+
+# Ignore raw data files
+data/
+output/
+
