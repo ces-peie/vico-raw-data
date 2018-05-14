@@ -96,11 +96,30 @@ vico_data <- vico_tables %>%
 
 
 #------------------------------------------------------------------------------*
+# Check for private data ----
+#------------------------------------------------------------------------------*
+
+# Get table of private variables that should not be exported
+private <- read_csv("data/private.csv")
+
+
+# Remove private variables
+vico_wo_private_data <- map(vico_data, ~select(.x, -one_of(private$private)))
+
+
+# Check that no private variables remain in the data
+vico_wo_private_data %>%
+  map(select, one_of(private$private)) %>%
+  walk(print, n = 5)
+
+
+
+#------------------------------------------------------------------------------*
 # Export raw data ----
 #------------------------------------------------------------------------------*
 
 # Write out each table
-vico_data %>%
+vico_wo_private_data %>%
   # SubjectID blob as character
   map(
     ~ .x %>%
