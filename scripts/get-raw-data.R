@@ -29,15 +29,19 @@ data_base <- DBI::dbConnect(
 # Get data ----
 #------------------------------------------------------------------------------*
 
-# List possible tables withihn the Clinicos schema
-vico_tables <- DBI::dbGetQuery(
+# Get Clinicos schema
+vico_schema <- DBI::dbGetQuery(
   data_base,
   paste(
-    "SELECT TABLE_NAME",
+    "SELECT TABLE_NAME, COLUMN_NAME",
     "FROM INFORMATION_SCHEMA.COLUMNS",
     "WHERE TABLE_SCHEMA = 'Clinicos'"
   )
-) %>%
+)
+
+
+# List possible tables withihn the Clinicos schema
+vico_tables <- vico_schema %>%
   filter(
     grepl(
       paste(
@@ -54,6 +58,19 @@ vico_tables <- DBI::dbGetQuery(
   print()
 
 
+# Get all needed variables
+vico_variables <- vico_schema %>%
+  select(table = TABLE_NAME, variable = COLUMN_NAME) %>%
+  filter(
+    # Keep all VICo tables
+    table %in% vico_tables,
+    # Remove troublesome variables
+    variable != "H1Q0021"
+  ) %>%
+  mutate(
+    # Correctly encode variable names
+    variable = iconv(variable, to = "ISO-8859-1//TRANSLIT")
+  )
 
 # Download every table
 vico_data <- vico_tables %>%
