@@ -72,41 +72,53 @@ vico_variables <- vico_schema %>%
     variable = iconv(variable, to = "ISO-8859-1//TRANSLIT")
   )
 
-# Download every table
-vico_data <- vico_tables %>%
-  set_names(.) %>%
-  sapply(
-    function(table){
-      # Show current table in console
-      cat(
-        "\nDownloading: ", table, "...(", as.character(Sys.time()),")\n",
-        sep = ""
-      )
-      
-      # Get names for all the columns
-      variables <- DBI::dbGetQuery(
-        data_base,
-        paste(
-          "SELECT COLUMN_NAME",
-          "FROM INFORMATION_SCHEMA.COLUMNS",
-          "WHERE TABLE_SCHEMA = 'Clinicos' AND",
-          paste0("TABLE_NAME = '", table, "';")
+
+# Prepare query for each table
+vico_data <- vico_variables %>%
+  nest(variable, .key = "variables") %>%
+  mutate(
+    data = map2(
+      table, variables,
+      ~ {
+        # Show current table in console
+        cat(
+          "\nDownloading: ", .x, "...(", as.character(Sys.time()),")\n",
+          sep = ""
         )
-      ) %>%
-        pull(COLUMN_NAME)
-      
-      # Download all data
-      data <- DBI::dbGetQuery(
-        data_base,
-        paste0("SELECT * FROM Clinicos.", table)
-      ) %>%
-        # And set correct names (long names were truncated)
-        set_names(variables) %>%
-        as_tibble()
-      
-      return(data)
-    },
-    USE.NAMES = TRUE
+        
+        # Get names for all the columns
+        variables <- .y$variable
+        
+        # Download all data
+        data <- DBI::dbGetQuery(
+          data_base,
+          paste(
+            "SELECT", paste(variables, collapse = ", "),
+            paste0("FROM Clinicos.", .x)
+          )
+        ) %>%
+          # And set correct names (long names were truncated)
+          set_names(
+            # Only use ASCII characters in variable names
+            iconv(variables, from = "ISO-8859-1", to = "ASCII//TRANSLIT")
+          ) %>%
+          as_tibble()
+        
+        return(data)
+      }
+    )
+  ) %>%
+  mutate(
+    # SubjectID blob as character
+    data = map(
+      data,
+      ~ .x %>%
+        mutate(
+          SubjectID = sapply(
+            SubjectID, function(x) paste(as.character(x), collapse = "")
+          )
+        )
+    )
   )
 
 
@@ -121,13 +133,18 @@ private <- read_csv("data/private.csv")
 
 
 # Remove private variables
-vico_wo_private_data <- map(vico_data, ~select(.x, -one_of(private$private)))
+vico_data <- mutate(
+  vico_data,
+  wo_private = map(data, select, -one_of(private$private))
+)
 
 
 # Check that no private variables remain in the data
-vico_wo_private_data %>%
+vico_data %>%
+  pull(wo_private) %>%
   map(select, one_of(private$private)) %>%
   walk(print, n = 5)
+
 
 
 
@@ -136,19 +153,10 @@ vico_wo_private_data %>%
 #------------------------------------------------------------------------------*
 
 # Write out each table
-vico_wo_private_data %>%
-  # SubjectID blob as character
-  map(
-    ~ .x %>%
-      mutate(
-        SubjectID = sapply(
-          SubjectID, function(x) paste(as.character(x), collapse = "")
-        )
-      )
-  ) %>%
+vico_data %>%
   # Export each table
-  list(., names(.)) %>%
-  pmap(
+  select(wo_private, table) %>%
+  pwalk(
     ~write_csv(
       x = .x,
       path = paste0("output/", .y, ".csv")
