@@ -180,4 +180,16 @@ tar(
 )
 
 
+# Encrypt
+system(
+  paste(
+    "gpg --yes --encrypt ",
+    "--output output/vico_tables.tar.gz.gpg",
+    "--recipient fredy@munoz.im",
+    "--recipient odeleon@ces.uvg.edu.gt",
+    "output/vico_tables.tar.gz"
+  )
+)
+
+
 # End of script
