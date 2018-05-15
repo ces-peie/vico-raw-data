@@ -152,6 +152,12 @@ vico_data %>%
 # Export raw data ----
 #------------------------------------------------------------------------------*
 
+# Delete all previous data
+file.remove(
+  list.files(path = "output/tables", pattern = ".csv$", full.names = TRUE)
+)
+
+
 # Write out each table
 vico_data %>%
   # Export each table
@@ -159,9 +165,19 @@ vico_data %>%
   pwalk(
     ~write_csv(
       x = .x,
-      path = paste0("output/", .y, ".csv")
+      path = paste0("output/tables/", .y, ".csv")
     )
   )
+
+
+# Pack in tar and compress
+tar(
+  tarfile = "output/vico_tables.tar.gz",
+  files = list.files(path = "output/tables", pattern = ".csv"),
+  compression = "gzip",
+  tar = "tar",
+  extra_flags = "--directory output/tables"
+)
 
 
 # End of script
