@@ -59,6 +59,19 @@ get_asset_uri <- function(release){
 
 
 
+# Download most recent asset
+get_recent_asset <- function(user, repo, filename){
+  download.file(
+    get_asset_uri(
+      get_gh_latest_release(user, repo)
+    ),
+    destfile = filename
+  )
+}
+
+
+
+
 #------------------------------------------------------------------------------*
 # Functions to publish releases data ----
 #------------------------------------------------------------------------------*
