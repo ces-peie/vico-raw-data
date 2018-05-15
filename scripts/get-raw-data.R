@@ -191,5 +191,8 @@ system(
   )
 )
 
+# Delete unencrypted archive
+file.remove("output/vico_tables.tar.gz")
+
 
 # End of script
