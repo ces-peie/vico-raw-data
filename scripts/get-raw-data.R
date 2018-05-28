@@ -33,9 +33,9 @@ data_base <- DBI::dbConnect(
 vico_schema <- DBI::dbGetQuery(
   data_base,
   paste(
-    "SELECT TABLE_NAME, COLUMN_NAME",
+    "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME",
     "FROM INFORMATION_SCHEMA.COLUMNS",
-    "WHERE TABLE_SCHEMA = 'Clinicos'"
+    "WHERE TABLE_SCHEMA IN ('Clinicos', 'Lab')"
   )
 )
 
@@ -60,7 +60,8 @@ vico_tables <- vico_schema %>%
 
 # Get all needed variables
 vico_variables <- vico_schema %>%
-  select(table = TABLE_NAME, variable = COLUMN_NAME) %>%
+  select(schema = TABLE_SCHEMA, table = TABLE_NAME, variable = COLUMN_NAME) %>%
+  arrange(schema, table, variable) %>%
   filter(
     # Keep all VICo tables
     table %in% vico_tables,
@@ -77,25 +78,28 @@ vico_variables <- vico_schema %>%
 vico_data <- vico_variables %>%
   nest(variable, .key = "variables") %>%
   mutate(
-    data = map2(
-      table, variables,
-      ~ {
+    data = pmap(
+      .,
+      function(schema, table, variables){
         # Show current table in console
         cat(
-          "\nDownloading: ", .x, "...(", as.character(Sys.time()),")\n",
+          "\nDownloading: ", table, "...(", as.character(Sys.time()),")\n",
           sep = ""
         )
         
         # Get names for all the columns
-        variables <- .y$variable
+        variables <- unlist(variables)
+        
+        # Build query
+        query <- paste(
+          "SELECT", paste(variables, collapse = ", "),
+          paste0("FROM ", schema, ".", table)
+        )
         
         # Download all data
         data <- DBI::dbGetQuery(
           data_base,
-          paste(
-            "SELECT", paste(variables, collapse = ", "),
-            paste0("FROM Clinicos.", .x)
-          )
+          query
         ) %>%
           # And set correct names (long names were truncated)
           set_names(
