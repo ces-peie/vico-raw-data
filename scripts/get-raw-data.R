@@ -47,7 +47,7 @@ vico_tables <- vico_schema %>%
       paste(
         "(^[CHP][0-9][^_ ]*$)",
         "(^Sujeto_[^_ ]+$)",
-        "(^DiarreaResultados$|^RespiratorioResultados$)",
+        "(^DiarreaResultados$|^RespiratorioResultados$|^FebrilResultados$)",
         sep = "|"
       ),
       TABLE_NAME
