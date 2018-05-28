@@ -52,7 +52,7 @@ if(tools::md5sum("output/temp.pgp") != tools::md5sum(encrypted_file)){
   # Create release
   release <- post_gh_release(
     user = "ces-peie", repo = "vico-raw-data",
-    tag_name = Sys.time(),
+    tag_name = gsub("[ :]+", "_", Sys.time()),
     name = Sys.time(),
     body = "Updated encrypted dataset.",
     auth_token = gtoken
