@@ -66,7 +66,8 @@ vico_variables <- vico_schema %>%
     # Keep all VICo tables
     table %in% vico_tables,
     # Remove troublesome variables
-    variable != "H1Q0021"
+    variable != "H1Q0021",
+    variable != "observaciones" | !grepl("Resultados", table)
   ) %>%
   mutate(
     # Correctly encode variable names
